@@ -1,6 +1,6 @@
 import { GetConnection, db } from 'db';
 import type { UpsertResult } from 'mariadb';
-import type { DbGroup } from 'types';
+import type { DbGroup, OxAccountRole } from 'types';
 
 export function SelectGroups() {
   return db.query<DbGroup>(`
@@ -79,4 +79,39 @@ export async function SetActiveGroup(charId: number, groupName?: string) {
     params.push(groupName);
     conn.execute('UPDATE character_groups SET isActive = 1 WHERE charId = ? AND name = ?', params);
   }
+}
+
+export function UpdateGroupData(name: string, label: string, colour: number | null, hasAccount: boolean) {
+  return db.update('UPDATE `ox_groups` SET `label` = ?, `colour` = ?, `hasAccount` = ? WHERE `name` = ?', [
+    label,
+    colour,
+    hasAccount,
+    name,
+  ]);
+}
+
+/** Number of members whose grade is above `maxGrade` — used to block orphaning a grade on removal. */
+export function CountMembersAboveGrade(name: string, maxGrade: number) {
+  return db.column<number>('SELECT COUNT(*) FROM `character_groups` WHERE `name` = ? AND `grade` > ?', [name, maxGrade]);
+}
+
+/**
+ * Reconciles a group's grade rows to match `grades` (position = grade number):
+ * upserts each grade in place and deletes any surplus trailing grades. The caller
+ * must ensure no member holds a grade that would be deleted.
+ */
+export async function UpsertGroupGrades(name: string, grades: { label: string; accountRole?: OxAccountRole }[]) {
+  await using conn = await GetConnection();
+  await conn.beginTransaction();
+
+  for (let index = 0; index < grades.length; index++) {
+    await conn.execute(
+      'INSERT INTO `ox_group_grades` (`group`, `grade`, `label`, `accountRole`) VALUES (?, ?, ?, ?) ' +
+        'ON DUPLICATE KEY UPDATE `label` = VALUES(`label`), `accountRole` = VALUES(`accountRole`)',
+      [name, index + 1, grades[index].label, grades[index].accountRole ?? null],
+    );
+  }
+
+  await conn.execute('DELETE FROM `ox_group_grades` WHERE `group` = ? AND `grade` > ?', [name, grades.length]);
+  await conn.commit();
 }

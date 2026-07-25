@@ -160,6 +160,16 @@ export interface CreateGroupProperties {
   hasAccount?: boolean;
 }
 
+export interface UpdateGroupProperties {
+  label?: string;
+  colour?: number;
+  hasAccount?: boolean;
+  grades?: {
+    label: string;
+    accountRole?: OxAccountRole;
+  }[];
+}
+
 export interface OxGroupPermissions {
   [grade: string]: { [permission: string]: boolean };
 }

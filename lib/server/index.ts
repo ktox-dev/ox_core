@@ -8,6 +8,7 @@ import type {
   GetGroupsByType,
   RemoveGroupPermission,
   SetGroupPermission,
+  UpdateGroup,
 } from 'server/groups';
 import { Ox as OxCore, type OxCommon } from 'lib';
 
@@ -23,6 +24,7 @@ interface OxServer extends OxCommon {
   DeleteAccountInvoice: typeof DeleteAccountInvoice;
   GetGroupsByType: typeof GetGroupsByType;
   CreateGroup: typeof CreateGroup;
+  UpdateGroup: typeof UpdateGroup;
   DeleteGroup: typeof DeleteGroup;
   GetLicenses: typeof GetLicenses;
   GetLicense: typeof GetLicense;
