@@ -227,15 +227,23 @@ function RefreshGroup(
   };
 
   // Rebuild the grade principal chain from the new grades.
+  //
+  // Deliberately unconditional, unlike SetupGroup. addAce/addPrincipal run
+  // through ox_lib, which issues them as console commands — those take effect
+  // on the next tick, not immediately. The teardown above is therefore still
+  // invisible to IsPrincipalAceAllowed at this point: the guard would see the
+  // old chain, believe it intact and skip re-linking. Once the queued removals
+  // land, the chain is gone for good and every member of the group silently
+  // loses each ACE inherited from `group.<name>`.
+  //
+  // Both calls are safe to repeat, so there is nothing to guard against.
   parent = group.principal;
 
   for (const i in group.grades) {
     const child = `${group.principal}:${i}`;
 
-    if (!IsPrincipalAceAllowed(child, child)) {
-      addAce(child, child, true);
-      addPrincipal(child, parent);
-    }
+    addAce(child, child, true);
+    addPrincipal(child, parent);
 
     parent = child;
   }
